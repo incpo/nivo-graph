@@ -1,113 +1,159 @@
-import Image from 'next/image'
+"use client"
+import {linearGradientDef} from "@nivo/core";
+import {PointTooltipProps, ResponsiveLine} from "@nivo/line";
+import React, {useState} from "react";
+import dayjs from 'dayjs'
+import {priceHistory} from "@/config";
+import {AnimatePresence, motion} from "framer-motion";
 
+// !CONSOLE WARNING https://github.com/plouc/nivo/issues/2415
 export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
+  const [logScale, setLogScale] = useState(false)
+
+    const formattedData = priceHistory.map((slice) => {
+        return {
+            x: dayjs.unix(slice?.date).valueOf(),
+            y: slice.adjClose
+        }
+    })
+
+    const maxY = Math.max.apply(null, formattedData.map((item) => {
+            return typeof(item.y) !== "number"? 0 : item.y
+        })
+    )
+
+    return (
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 sm:p-24">
+        <p>LogarithmicScale : <span className={logScale ? 'text-green-300' : 'text-red-300'}>{logScale ? 'on' : 'off'}</span></p>
+        <div className='h-64 select-none w-full max-w-[1280px] sm:h-96'>
+          <ResponsiveLine
+              curve="monotoneX"
+              colors={['#4d88db','#0000FF']}
+              data={[
+                  {
+                      id: 'fake corp. A',
+                      data: formattedData
+                  },
+              ]}
+              axisTop={null}
+              axisBottom={null}
+              axisRight={{}}
+              xScale={{
+                  type: 'linear',
+                  max: 'auto',
+                  min: 'auto',
+              }}
+              yScale={{
+                  type: logScale ? 'symlog' : 'linear',
+                  min: logScale ? 'auto' : 'auto',
+                  max: logScale ? maxY :'auto',
+                  stacked: false,
+              }}
+              enableGridX={false}
+              enableCrosshair={true}
+              isInteractive
+              useMesh
+              enableArea={true}
+              enablePoints={false}
+              crosshairType='x'
+              defs={[
+                  linearGradientDef('gradientA', [
+                      { offset: 0, color: '#0000FF' },
+                      { offset: 100, color: '#0000FF', opacity: 0 },
+                  ]),
+              ]}
+              fill={[{ match: '*', id: 'gradientA' }]}
+              tooltip={(props) => {
+                  return (
+                      <MyTooltip props={props}/>
+                  )
+              }}
+              margin={{
+                  right: 30,
+                  top:20,
+                  bottom: 20
+              }}
+              // Layers that will be rendered
+              layers={[
+                  'grid',
+                  'axes',
+                  'areas',
+                  CustomPoint, // !! Be carefully with position, it's like z-index.
+                  'crosshair',
+                  'lines',
+                  'mesh',
+              ]}
+              theme={{
+                  textColor: '#3b4150',
+                  grid: {
+                      line: {
+                          stroke: '#252932',
+                      }
+                  },
+                  tooltip: {
+                      container: {
+                          background: '#20232D',
+                          fontSize: '12px',
+                          borderRadius: '14px'
+                      }
+                  },
+                  crosshair: {
+                      line: {
+                          stroke: '#fff'
+                      }
+                  }
+              }}
+          />
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+        <button onClick={()=> setLogScale(!logScale)} className='border p-2 rounded border-[#2e2e2e]'>toggle log scale</button>
     </main>
   )
+}
+
+
+const CustomPoint: React.FC<any> = ({currentPoint}) => { // No right type in the library!
+    // it will show the current point
+    return (
+           // Sometimes AnimatePresence doesn't delete from React tree one or more elements, it's looks like a bug.
+           <AnimatePresence>
+               {currentPoint && (
+                   <motion.circle
+                       key={currentPoint.index}
+                       initial={{r: 0, opacity: 0}}
+                       animate={{r: 5, opacity: 1}}
+                       transition={{ease: 'easeInOut', duration: 0.250}}
+                       exit={{r: 0, opacity: 0}}
+                       strokeWidth='1'
+                       stroke='#1a6dfc'
+                       fill='#1a6dfc'
+                       fillOpacity={0.2}
+                       cx={currentPoint.x}
+                       cy={currentPoint.y}
+                   />
+               )}
+           </AnimatePresence>
+    )
+};
+
+
+const MyTooltip = ({props}: {props: PointTooltipProps}) => {
+    return (
+        <div className='py-1 px-4 text-sm flex flex-col space-y-0.5 text-center rounded-lg shadow bg-[#20232D]'>
+            <span className='text-[#E1E7EF]'><>{props.point.data.y}</></span>
+            <span className='text-[#7F8EA3] text-xs'>{dayjs(props.point.data.x).format("D MMM[']YY")}</span>
+        </div>
+    );
+};
+
+
+export type CurrentPoint = {
+    borderColor: string
+    color: string
+    data: {x: number, y: number, xFormatted: string, yFormatted: string}
+    id: string
+    index: number
+    serieColor: string
+    serieId: string
+    x: number
+    y: number
 }
